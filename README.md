@@ -12,4 +12,4 @@ Everything except the API is open source, so have fun with it.
 - benchmark_api.sh (Modifications) => GNU AGPLv3
 - Everything else in this Repo => GNU AGPLv3 
 
-If you are the other of one of the things mentioned above and you don't want me to have this in this Repo, please contact me. 
+If you are the Owner of one of the things mentioned above and you don't want me to have this in this Repo, please contact me. 

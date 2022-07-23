@@ -30,7 +30,7 @@ ini_set('display_errors', "E_ALL");
     <title>Gaab-Networks Benchmarks</title>
 </head>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="#">Gaab'sches Lagersystem</a>
+    <a class="navbar-brand" href="#">Gaab-Networks Benchmarks</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
         aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
