@@ -1,18 +1,9 @@
-#!/usr/bin/env bash
-
-##########
-# nench.sh ("new bench.sh")
-# =========================
-# current version at https://github.com/n-st/nench
-# - loosely based on the established freevps.us/bench.sh
-# - includes CPU and ioping measurements
-# - reduced number of speedtests (9 x 100 MB), while retaining useful European
-#   and North American POPs
-# - runs IPv6 speedtest by default (if the server has IPv6 connectivity)
-# Run using `curl -s bench.wget.racing | bash`
-# or `wget -qO- bench.wget.racing | bash`
-# - list of possibly required packages: curl,gawk,coreutils,util-linux,procps,ioping
-##########
+#!/usr/bin/bash
+# Originally realeased under Apache 2.0 by n-st (Nils Steinger)
+# Orignal Parts remain under that Licence.
+# Modification licenced under GNU AGPLv3 by Strub3l (Kevin Gaab)
+# Modification (c) 2022 Kevin Gaab
+# Modifications summarized: Added the API, Removed the Network testing since it's not yet implemented in the Backend, Removed FreeBSD support.
 
 command_exists()
 {
@@ -23,6 +14,12 @@ Bps_to_MiBps()
 {
     awk '{ printf "%.2f MiB/s\n", $0 / 1024 / 1024 } END { if (NR == 0) { print "error" } }'
 }
+
+Bps_to_MiBps_bench()
+{
+    awk '{ printf "%.2f", $0 / 1024 / 1024 } END { if (NR == 0) { print "error" } }'
+}
+
 
 B_to_MiB()
 {
@@ -119,6 +116,12 @@ else
     exit 1
 fi
 
+if ! command_exists jq
+then
+    printf '%s\n' 'This script requires jq, but it could not be found.' 1>&2
+    exit 1
+fi
+
 if ! "$gnu_dd" --version > /dev/null 2>&1
 then
     printf '%s\n' 'It seems your system only has a non-GNU version of dd.'
@@ -126,62 +129,50 @@ then
     gnu_dd=''
 fi
 
-printf '%s\n' '-------------------------------------------------'
-printf ' nench.sh v2019.07.20 -- https://git.io/nench.sh\n'
-date -u '+ benchmark timestamp:    %F %T UTC'
-printf '%s\n' '-------------------------------------------------'
+printf '%s\n' '-------------------------------------------------------'
+printf ' Strubel Bench -- forked from https://git.io/nench.sh\n'
+printf ' With API support for https://benchmarks.gaab-networks.de\n'
+date -u '+ Benchmark timestamp:    %F %T UTC'
+printf '%s\n' '-------------------------------------------------------'
 
 printf '\n'
 
-if ! command_exists ioping
-then
-    curl -s --max-time 10 -o ioping.static http://wget.racing/ioping.static
+    curl -s --max-time 10 -o ioping.static https://benchmarks.gaab-networks.de/ioping.static
     chmod +x ioping.static
     ioping_cmd="./ioping.static"
-else
-    ioping_cmd="ioping"
-fi
+
+# Create Token at API backend
+export sbench_token=$(curl -Ss https://benchmarks.gaab-networks.de/api.php?gettoken | jq -r .token)
+curl -Ss -o /dev/null -X POST -F "type=unknown" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
 
 # Basic info
-if [ "$(uname)" = "Linux" ]
+printf 'Processor:    '
+awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//'
+cpu=$(awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//') 
+curl -Ss -X POST -F "cpu=$cpu" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
+printf 'CPU cores:    '
+awk -F: '/model name/ {core++} END {print core}' /proc/cpuinfo
+cpucores=$(awk -F: '/model name/ {core++} END {print core}' /proc/cpuinfo) 
+curl -Ss -X POST -F "cpucores=$cpucores" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
+printf 'Frequency:    '
+awk -F: ' /cpu MHz/ {freq=$2} END {print freq " MHz"}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//'
+printf 'RAM:          '
+free --mega | awk 'NR==2 {print $2}'
+ram=$(free --mega | awk 'NR==2 {print $2}')
+curl -Ss -X POST -F "ram=$ram" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
+if [ "$(swapon -s | wc -l)" -lt 2 ]
 then
-    printf 'Processor:    '
-    awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//'
-    printf 'CPU cores:    '
-    awk -F: '/model name/ {core++} END {print core}' /proc/cpuinfo
-    printf 'Frequency:    '
-    awk -F: ' /cpu MHz/ {freq=$2} END {print freq " MHz"}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//'
-    printf 'RAM:          '
-    free -h | awk 'NR==2 {print $2}'
-    if [ "$(swapon -s | wc -l)" -lt 2 ]
-    then
-        printf 'Swap:         -\n'
-    else
-        printf 'Swap:         '
-        free -h | awk '/Swap/ {printf $2}'
-        printf '\n'
-    fi
+    printf 'Swap:         -\n'
 else
-    # we'll assume FreeBSD, might work on other BSDs too
-    printf 'Processor:    '
-    sysctl -n hw.model
-    printf 'CPU cores:    '
-    sysctl -n hw.ncpu
-    printf 'Frequency:    '
-    grep -Eo -- '[0-9.]+-MHz' /var/run/dmesg.boot | tr -- '-' ' ' | sort -u
-    printf 'RAM:          '
-    sysctl -n hw.physmem | B_to_MiB
-
-    if [ "$(swapinfo | wc -l)" -lt 2 ]
-    then
-        printf 'Swap:         -\n'
-    else
-        printf 'Swap:         '
-        swapinfo -k | awk 'NR>1 && $1!="Total" {total+=$2} END {print total*1024}' | B_to_MiB
-    fi
+    printf 'Swap:         '
+    free -h | awk '/Swap/ {printf $2}'
+    printf '\n'
 fi
+
 printf 'Kernel:       '
 uname -s -r -m
+kernel=$(uname -s -r -m)
+curl -Ss -X POST -F "kernel=$kernel" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
 
 printf '\n'
 
@@ -205,19 +196,29 @@ printf '\n'
 export TIMEFORMAT='%3R seconds'
 
 printf 'CPU: SHA256-hashing 500 MB\n    '
-command_benchmark -q sha256sum || command_benchmark -q sha256 || printf '[no SHA256 command found]\n'
+sha=$(command_benchmark -q sha256sum || command_benchmark -q sha256 || printf '[no SHA256 command found]\n')
+echo $sha
+curl -Ss -o /dev/null -X POST -F "sha256_500=$(echo $sha | awk '{print $1;}')" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
 
 printf 'CPU: bzip2-compressing 500 MB\n    '
-command_benchmark bzip2
+bzip=$(command_benchmark bzip2)
+echo $bzip
+curl -Ss -o /dev/null -X POST -F "bzip2_500=$(echo $bzip | awk '{print $1;}')" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
 
 printf 'CPU: AES-encrypting 500 MB\n    '
-command_benchmark openssl enc -e -aes-256-cbc -pass pass:12345678 | sed '/^\*\*\* WARNING : deprecated key derivation used\.$/d;/^Using -iter or -pbkdf2 would be better\.$/d'
+aes=$(command_benchmark openssl enc -e -aes-256-cbc -pass pass:12345678 | sed '/^\*\*\* WARNING : deprecated key derivation used\.$/d;/^Using -iter or -pbkdf2 would be better\.$/d')
+echo $aes
+curl -Ss -o /dev/null -X POST -F "aes_500=$(echo $aes | awk '{print $1;}')" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
 
 printf '\n'
 
 # ioping
 printf 'ioping: seek rate\n    '
-"$ioping_cmd" -DR -w 5 . | tail -n 1
+ioping=$(./ioping.static -DR -w 5 . | tail -n 1)
+echo $ioping
+curl -Ss -o /dev/null -X POST -F "ioping_min=$(echo $ioping | awk '{print $3;}') $(echo $ioping | awk '{print $4;}')" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
+curl -Ss -o /dev/null -X POST -F "ioping_avg=$(echo $ioping | awk '{print $6;}') $(echo $ioping | awk '{print $7;}')" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
+curl -Ss -o /dev/null -X POST -F "ioping_max=$(echo $ioping | awk '{print $9;}') $(echo $ioping | awk '{print $10;}')" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
 printf 'ioping: sequential read speed\n    '
 "$ioping_cmd" -DRL -w 5 . | tail -n 2 | head -n 1
 
@@ -241,75 +242,88 @@ else
 
     # Calculating avg I/O (better approach with awk for non int values)
     ioavg=$( awk 'BEGIN{printf("%.0f", ('"$io1"' + '"$io2"' + '"$io3"')/3)}' )
+    curl -Ss -o /dev/null -X POST -F "dd_avg=$(echo $ioavg | Bps_to_MiBps_bench)" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
     printf '    average:    %s\n' "$(printf '%d\n' "$ioavg" | Bps_to_MiBps)"
 fi
-
 printf '\n'
 
-# Network speedtests
+# Network speedtests Disabled for now
 
-ipv4=$(curl -4 -s --max-time 5 http://icanhazip.com/)
-if [ -n "$ipv4" ]
-then
-    printf 'IPv4 speedtests\n'
-    printf '    your IPv4:    %s\n' "$(redact_ip "$ipv4")"
-    printf '\n'
+# ipv4=$(curl -4 -s --max-time 5 http://icanhazip.com/)
+# if [ -n "$ipv4" ]
+# then
+#     printf 'IPv4 speedtests\n'
+#     printf '    your IPv4:    %s\n' "$(redact_ip "$ipv4")"
+#     printf '\n'
 
-    printf '    Cachefly CDN:         '
-    download_benchmark -4 http://cachefly.cachefly.net/100mb.test | \
-        Bps_to_MiBps
+#     printf '    Cachefly CDN:         '
+#     download_benchmark -4 http://cachefly.cachefly.net/100mb.test | \
+#         Bps_to_MiBps
 
-    printf '    Leaseweb (NL):        '
-    download_benchmark -4 http://mirror.nl.leaseweb.net/speedtest/100mb.bin | \
-        Bps_to_MiBps
+#     printf '    Leaseweb (NL):        '
+#     download_benchmark -4 http://mirror.nl.leaseweb.net/speedtest/100mb.bin | \
+#         Bps_to_MiBps
 
-    printf '    Softlayer DAL (US):   '
-    download_benchmark -4 http://speedtest.dal06.softlayer.com/downloads/test100.zip | \
-        Bps_to_MiBps
+#     printf '    Softlayer DAL (US):   '
+#     download_benchmark -4 http://speedtest.dal06.softlayer.com/downloads/test100.zip | \
+#         Bps_to_MiBps
 
-    printf '    Online.net (FR):      '
-    download_benchmark -4 http://ping.online.net/100Mo.dat | \
-        Bps_to_MiBps
+#     printf '    Online.net (FR):      '
+#     download_benchmark -4 http://ping.online.net/100Mo.dat | \
+#         Bps_to_MiBps
 
-    printf '    OVH BHS (CA):         '
-    download_benchmark -4 http://speedtest-bhs.as16276.ovh/files/100Mio.dat | \
-        Bps_to_MiBps
+#     printf '    OVH BHS (CA):         '
+#     download_benchmark -4 http://speedtest-bhs.as16276.ovh/files/100Mio.dat | \
+#         Bps_to_MiBps
 
-else
-    printf 'No IPv4 connectivity detected\n'
-fi
+# else
+#     printf 'No IPv4 connectivity detected\n'
+# fi
 
-printf '\n'
+# printf '\n'
 
-ipv6=$(curl -6 -s --max-time 5 http://icanhazip.com/)
-if [ -n "$ipv6" ]
-then
-    printf 'IPv6 speedtests\n'
-    printf '    your IPv6:    %s\n' "$(redact_ip "$ipv6")"
-    printf '\n'
+# ipv6=$(curl -6 -s --max-time 5 http://icanhazip.com/)
+# if [ -n "$ipv6" ]
+# then
+#     printf 'IPv6 speedtests\n'
+#     printf '    your IPv6:    %s\n' "$(redact_ip "$ipv6")"
+#     printf '\n'
 
-    printf '    Leaseweb (NL):        '
-    download_benchmark -6 http://mirror.nl.leaseweb.net/speedtest/100mb.bin | \
-        Bps_to_MiBps
+#     printf '    Leaseweb (NL):        '
+#     download_benchmark -6 http://mirror.nl.leaseweb.net/speedtest/100mb.bin | \
+#         Bps_to_MiBps
 
-    printf '    Softlayer DAL (US):   '
-    download_benchmark -6 http://speedtest.dal06.softlayer.com/downloads/test100.zip | \
-        Bps_to_MiBps
+#     printf '    Softlayer DAL (US):   '
+#     download_benchmark -6 http://speedtest.dal06.softlayer.com/downloads/test100.zip | \
+#         Bps_to_MiBps
 
-    printf '    Online.net (FR):      '
-    download_benchmark -6 http://ping6.online.net/100Mo.dat | \
-        Bps_to_MiBps
+#     printf '    Online.net (FR):      '
+#     download_benchmark -6 http://ping6.online.net/100Mo.dat | \
+#         Bps_to_MiBps
 
-    printf '    OVH BHS (CA):         '
-    download_benchmark -6 http://speedtest-bhs.as16276.ovh/files/100Mio.dat | \
-        Bps_to_MiBps
+#     printf '    OVH BHS (CA):         '
+#     download_benchmark -6 http://speedtest-bhs.as16276.ovh/files/100Mio.dat | \
+#         Bps_to_MiBps
 
-else
-    printf 'No IPv6 connectivity detected\n'
-fi
+# else
+#     printf 'No IPv6 connectivity detected\n'
+# fi
+
+echo ""
+echo "Please enter the type of the machine, vps or dedi"
+echo "If you don't use the correct one or you enter nothing it will be shown as 'unknown'"
+echo "If you pipe this script into bash/zsh, it will be shown as unknown. Contact me with your token so I can change it."
+read type
+curl -Ss -o /dev/null -X POST -F "type=$type" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
+
+echo ""
+echo "Thanks for contributing!"
+echo "Here is your Token, you might need it later: $sbench_token"
+
 
 printf '%s\n' '-------------------------------------------------'
 
 # delete downloaded ioping binary if script has been run straight from a pipe
 # (rather than a downloaded file)
 [ -t 0 ] || rm -f ioping.static
+unset sbench_token
