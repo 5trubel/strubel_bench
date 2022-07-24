@@ -170,8 +170,8 @@ else
 fi
 
 printf 'Kernel:       '
-uname -s -r -m
-kernel=$(uname -s -r -m)
+uname -r
+kernel=$(uname -r)
 curl -Ss -X POST -F "kernel=$kernel" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
 
 printf '\n'
