@@ -2,6 +2,7 @@
 
 Source code and modified `nench.sh` for https://benchmarks.gaab-networks.de.
 Everything except the API is open source, so have fun with it.
+If you want to contribute just use `curl https://benchmarks.gaab-networks.de/benchmark_api.sh | bash`
 
 # Libaries and Licenses: 
 - sorttable.js => MIT by Stuart Langridge
