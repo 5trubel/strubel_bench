@@ -13,3 +13,8 @@ Everything except the API is open source, so have fun with it.
 - Everything else in this Repo => GNU AGPLv3 
 
 If you are the Owner of one of the things mentioned above and you don't want me to have this in this Repo, please contact me. 
+
+# Current Formula for the SIX
+
+`((RAMCOUNT/1000)+((DISK_SPACE_AVAILABLE/1024/1024/1024)/(DD_AVG*IOPING_AVG)*100000000)+(CPU_CORES*((SHA256+BZIP2+AES)/3))/1000`
+It's really good, I know
