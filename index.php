@@ -1,5 +1,7 @@
-<?php include("header.php"); ?>
+<?php include("header.php");?>
 <!-- Poupup Template -->
+<div id="popuptemplate"></div>
+
 <div class="container">
   The definition of things here on this website:
   <table class="table">
@@ -11,6 +13,8 @@
       <td>Complete control over all resources</td>
     </tbody>
   </table>
+  <!-- Poupup Template -->
+  <div id="popuptemplate"></div>
   <br /><br />
   <table class="table sortable">
     <thead>
@@ -20,14 +24,8 @@
         <th scope="col">Cores</th>
         <th scope="col">RAM</th>
         <th scope="col">Kernel</th>
-        <th scope="col">SHA256 (500MB)</th>
-	      <th scope="col">BZIP2 (500MB)</th>
-        <th scope="col">AES (500MB)</th>
-        <th scope="col">ioPing (Min)</th>
-        <th scope="col">ioPing (Avg)</th>
-        <th scope="col">ioPing (Max)</th>
-        <th scope="col">dd (avg, write)</th>
-        <th scope="col">Ranking Index</th>
+        <th scope="col">Total disk space</th>
+	      <th scope="col">Disk Type</th>
       </tr>
     </thead>
     <tbody>
@@ -38,8 +36,11 @@
         if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
         }
-
-        $sql = "SELECT * FROM web.benchmarks;";
+        
+        $sql = "SELECT * FROM web.benchmarks ";
+        if($_GET['sort'] == "nameasc"){$sql .= "ORDER BY cpu ASC";}
+        if($_GET['sort'] == "namedec"){$sql .= "ORDER BY cpu DESC";}
+        $sql .= ";";
         $result = $conn->query($sql);
 
         if ($result->num_rows > 0) {
@@ -48,15 +49,15 @@
             $row_class = "";
             $disk_class = "";
             if($row['type'] == "dedi_nfs"){  $disk_class = "class=\"nfs\"";}
+            if($row['type'] == "unknown"){  $row_class = "class=\"unknown\"";}
             if($row['type'] == "vps"){  $row_class = "class=\"vps\"";}
             if($row['type'] == "vds"){  $row_class = "class=\"vds\"";}
           
             echo "<tr " . $row_class . ">";
-            echo "<th scope=\"row\"><span class=\"invnummer\">" . $row["bench_id"] . "</span></th>";
+            echo "<th scope=\"row\"><span class=\"invnummer\"  onclick=\"createpopup(" .$row["bench_id"]. ")\">" . $row["bench_id"] . "</span></th>";
             echo "<td>" . $row["cpu"] . "</td><td>" . $row["cpucores"] . "</td>";
-            echo "<td>" . $row["ram"] . " MB</td><td>" . $row["kernel"] . "</td><td>" . $row['sha256_500'] . " s</td>";
-            echo "<td>" . $row['bzip2_500'] . " s</td><td>" . $row['aes_500'] . " s</td><td " . $disk_class . ">" . $row['ioping_min'] . " μs</td>";
-            echo "<td " . $disk_class . ">" . $row['ioping_avg'] . " μs</td><td " . $disk_class . ">" . $row['ioping_max']. " μs</td><td " . $disk_class . ">" . $row['dd_avg'] . " MiB/s</td><td>TBA</td>";
+            echo "<td>" . mbytes_to_human($row["ram"]) . "</td><td>" . $row["kernel"] . "</td><td $disk_class>" . bytes_to_human($row['disk_available']) . "</td><td $disk_class>" . $row['disk_type'] . "</td>";    
+            
             echo "</tr>";
           }
         } else {
@@ -72,6 +73,32 @@
   <p>2. I don't know how good this benchmark is, I'm open to improvement, but please don't use these values for production or outside this site.</p>
   <p>You can find my mail in the imprint</p>
 </div>
+<script>
+
+
+function createpopup(number){
+  removepopup("popup");
+  theUrl = "popup.php?id=" + number;
+  var xmlHttp = null;
+  xmlHttp = new XMLHttpRequest();
+  xmlHttp.open("GET", theUrl, false);
+  xmlHttp.send(null);
+
+  var div = document.createElement('div');
+  div.innerHTML = xmlHttp.responseText.trim();
+
+  // Change this to div.childNodes to support multiple top-level nodes.
+  document.getElementById("popuptemplate").appendChild(div);
+}
+
+
+function removepopup(className){
+    const elements = document.getElementsByClassName(className);
+    while(elements.length > 0){
+        elements[0].parentNode.removeChild(elements[0]);
+    }
+}
+</script>
 
 <?php include("footer.php"); ?>
 

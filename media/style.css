@@ -1,3 +1,35 @@
+.popup{
+  overflow: visible;
+  border-radius: 2;
+  top: 10%;
+  right: 7%;
+  position: fixed;
+  z-index: 3000;
+  border: 6px solid rgba(0,0,0,0.35);
+  background: rgb(255, 255, 255);
+}
+.popup_notes{
+  border: 1px solid rgba(0,0,0,1);
+}
+.popup_note_text{
+  color: #808080;
+}
+.popup_close{
+  overflow: visible;
+  right: 3px;
+  top: -5px;
+  position: absolute;
+}
+.popup_close:hover, .invnummer:hover{
+  cursor: pointer;
+}
+
+.popup p{
+  margin-top: 0;
+  margin-bottom: 0.2rem;
+}
+
+
 .vps{
   background-color: #d5d696;
 }

@@ -3,7 +3,7 @@
 # Orignal Parts remain under that Licence.
 # Modification licenced under GNU AGPLv3 by Strub3l (Kevin Gaab)
 # Modification (c) 2022 Kevin Gaab
-# Modifications summarized: Added the API, Removed the Network testing since it's not yet implemented in the Backend, Removed FreeBSD support.
+# Modifications:
 
 command_exists()
 {
@@ -176,19 +176,16 @@ curl -Ss -X POST -F "kernel=$kernel" -F "token=$sbench_token" https://benchmarks
 
 printf '\n'
 
-printf 'Disks:\n'
-if command_exists lsblk && [ -n "$(lsblk)" ]
-then
-    lsblk --nodeps --noheadings --output NAME,SIZE,ROTA --exclude 1,2,11 | sort | awk '{if ($3 == 0) {$3="SSD"} else {$3="HDD"}; printf("%-3s%8s%5s\n", $1, $2, $3)}'
-elif [ -r "/var/run/dmesg.boot" ]
-then
-    awk '/(ad|ada|da|vtblk)[0-9]+: [0-9]+.B/ { print $1, $2/1024, "GiB" }' /var/run/dmesg.boot | sort -u
-elif command_exists df
-then
-    df -h --output=source,fstype,size,itotal | awk 'NR == 1 || /^\/dev/'
-else
-    printf '[ no data available ]'
-fi
+freespace=$(df -k . | awk 'NR==2 {print $3}')
+totalspace=$(df -k . | awk 'NR==2 {print $2}')
+printf 'Disk usage:            \n'
+echo "$freespace / $totalspace"
+curl -Ss -X POST -F "disk_available=$totalspace" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
+
+diskid=$(df -k . | awk 'NR==2 {print $1}' | rev | cut -c2- | rev | cut -c6-)
+disktype=$(lsblk --nodeps --noheadings --output NAME,SIZE,ROTA --exclude 1,2,11 | sort | awk '{if ($3 == 0) {$3="SSD"} else {$3="HDD"}; printf("%-3s%8s%5s\n", $1, $2, $3)}' | grep $(df -k . | awk 'NR==2 {print $1}' | rev | cut -c2- | rev | cut -c6-) | awk '{print $3}')
+echo "$diskid is $disktype"
+curl -Ss -X POST -F "disk_type=$disktype" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
 
 printf '\n'
 
@@ -326,4 +323,6 @@ printf '%s\n' '-------------------------------------------------'
 # delete downloaded ioping binary if script has been run straight from a pipe
 # (rather than a downloaded file)
 [ -t 0 ] || rm -f ioping.static
+
+curl -Ss -o /dev/null -X POST -F "fin=yes" -F "token=$sbench_token" https://benchmarks.gaab-networks.de/api.php > /dev/null 2>&1
 unset sbench_token

@@ -1,11 +1,30 @@
 <?php
-$servername = "";
-$username = "";
-$password = "";
-$dbname = "";
+include("config.php");
 
 ini_set('display_errors', "E_ALL");
-//$script = apache_getenv('SCRIPT_NAME');
+
+function bytes_to_human($size, $precision = 2) {
+    $units = array('B','kB','MB','GB','TB','PB','EB','ZB','YB');
+    $step = 1024;
+    $i = 0;
+    while (($size / $step) > 0.9) {
+        $size = intval($size) / intval($step);
+        $i++;
+    }
+    return round($size, $precision).$units[$i];
+  }
+  
+  function mbytes_to_human($size, $precision = 2) {
+    $units = array('kB','MB','GB','TB','PB','EB','ZB','YB');
+    $step = 1024;
+    $i = 1;
+    while (($size / $step) > 0.9) {
+        $size = intval($size) / intval($step);
+        $i++;
+    }
+    return round($size, $precision).$units[$i];
+  }
+  
 ?>
 
 <head>
