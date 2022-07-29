@@ -2,6 +2,7 @@
 
 Source code and modified `nench.sh` for https://benchmarks.gaab-networks.de.
 Everything except the API is open source, so have fun with it.
+
 If you want to contribute just use `curl https://benchmarks.gaab-networks.de/benchmark_api.sh | bash`
 
 # Libaries and Licenses: 
@@ -18,4 +19,5 @@ If you are the Owner of one of the things mentioned above and you don't want me 
 # Current Formula for the SIX
 
 `((RAMCOUNT/1000)+((DISK_SPACE_AVAILABLE/1024/1024/1024)/(DD_AVG*IOPING_AVG)*100000000)+(CPU_CORES*((SHA256+BZIP2+AES)/3))/1000`
+
 It's really good, I know
