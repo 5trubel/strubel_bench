@@ -5,6 +5,30 @@ error_reporting(E_ALL);
 
 include("config.php");
 
+function bytes_to_human($size, $precision = 2) {
+  $units = array('B','kB','MB','GB','TB','PB','EB','ZB','YB');
+  $step = 1024;
+  $i = 0;
+  while (($size / $step) > 0.9) {
+      $size = intval($size) / intval($step);
+      $i++;
+  }
+  return round($size, $precision).$units[$i];
+}
+
+function mbytes_to_human($size, $precision = 2) {
+  $units = array('kB','MB','GB','TB','PB','EB','ZB','YB');
+  $step = 1024;
+  $i = 1;
+  while (($size / $step) > 0.9) {
+      $size = intval($size) / intval($step);
+      $i++;
+  }
+  return round($size, $precision).$units[$i];
+}
+
+
+
 $id = $_GET['id'];
 
 // Create connection
@@ -36,10 +60,10 @@ while($row = $result->fetch_assoc()) {
       <p>Type: <?php echo $type; ?></p>
       <p>CPU: <?php echo $row['cpu']; ?></p>
       <p> Cores: <?php echo $row['cpucores']; ?></p>
-      <p>RAM: <?php echo $row['ram']; ?> MiB</p>
+      <p>RAM: <?php echo mbytes_to_human($row['ram']); ?> MiB</p>
       <p>Kernel: <?php echo $row['kernel']; ?></p>
       <p class="<?php echo $disk_class; ?>">Disktype: <?php echo $row['disk_type']; ?></p>
-      <p class="<?php echo $disk_class; ?>"> Disk space: <?php echo $row['disk_available']; ?></p>
+      <p class="<?php echo $disk_class; ?>"> Disk space: <?php echo bytes_to_human($row['disk_available']); ?></p>
       <div class="popup_notes">
         <p>Benchmarks:</p>
         <span class="poup_note_text">SHA256 (500MB): <?php echo $row['sha256_500']; ?></span><br />
@@ -48,7 +72,7 @@ while($row = $result->fetch_assoc()) {
         <span class="poup_note_text <?php echo $disk_class; ?>">ioPing Low: <?php echo $row['ioping_min']; ?></span><br />
         <span class="poup_note_text <?php echo $disk_class; ?>">ioPing High: <?php echo $row['ioping_max']; ?></span><br />
         <span class="poup_note_text <?php echo $disk_class; ?>">ioPing Avg: <?php echo $row['ioping_avg']; ?></span><br />
-        <span class="poup_note_text <?php echo $disk_class; ?>">DD (Write/Avg): <?php echo $row['dd_avg']; ?></span><br />
+        <span class="poup_note_text <?php echo $disk_class; ?>">DD (Write/Avg): <?php echo mbytes_to_human($row['dd_avg']); ?></span><br />
       </div>
     </div>
     <?php

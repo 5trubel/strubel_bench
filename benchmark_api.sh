@@ -3,7 +3,7 @@
 # Orignal Parts remain under that Licence.
 # Modification licenced under GNU AGPLv3 by Strub3l (Kevin Gaab)
 # Modification (c) 2022 Kevin Gaab
-# Modifications:
+#  summarized: Added the API, Removed the Network testing since it's not yet implemented in the Backend, Removed FreeBSD support.
 
 command_exists()
 {
