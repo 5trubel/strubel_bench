@@ -26,6 +26,7 @@
         <th scope="col">Kernel</th>
         <th scope="col">Total disk space</th>
 	      <th scope="col">Disk Type</th>
+        <th scope="col">SIX</th>
       </tr>
     </thead>
     <tbody>
@@ -57,7 +58,13 @@
             echo "<th scope=\"row\"><span class=\"invnummer\"  onclick=\"createpopup(" .$row["bench_id"]. ")\">" . $row["bench_id"] . "</span></th>";
             echo "<td>" . $row["cpu"] . "</td><td>" . $row["cpucores"] . "</td>";
             echo "<td>" . mbytes_to_human($row["ram"]) . "</td><td>" . $row["kernel"] . "</td><td $disk_class>" . bytes_to_human($row['disk_available']) . "</td><td $disk_class>" . $row['disk_type'] . "</td>";    
-            
+            $six = "N/A";
+            //=(([@ram]/1000)+(([@[disk_available]]/1024/1024/1024)/([@[dd_avg]]*[@[ioping_avg]])*100000000)+([@cpucores]*MEDIAN(Hardware[@[sha256_500]:[aes_500]])))/1000
+            $six=((intval($row['ram'])/1000))+((intval($row['disk_available'])/1024/1024/1024))/(intval($row['dd_avg'])*intval($row['ioping_avg'])*100000000)+((intval($row["cpucores"])*((intval($row["sha256_500"])+intval($row["bzip2_500"])+intval($row["aes_500"]))/3))/100)/100;
+            $six=round($six);
+            echo "<td> $six </td>";
+
+
             echo "</tr>";
           }
         } else {
@@ -71,6 +78,7 @@
   <h3>Disclaimer:</h3>
   <p>1. As written by the original author "n-st", running scripts from an unknown source that downloads an unknown binary is a security risk, I try my best to make it as safe as possible, <span class="bold">but it is your responsibility</span>. I am not responsible for any damage caused by running this script! If you don't trust me or don't like this script, <span class="bold">don't use it!</span></p>  
   <p>2. I don't know how good this benchmark is, I'm open to improvement, but please don't use these values for production or outside this site.</p>
+  <p>3. The SIX (Strubel Performance Index) is a sloppily calculated number based on all benchmarks and system specs, I would really appreciate it if someone could create a better formula.
   <p>You can find my mail in the imprint</p>
 </div>
 <script>
