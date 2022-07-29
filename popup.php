@@ -56,7 +56,7 @@ while($row = $result->fetch_assoc()) {
       <p>Type: <?php echo $type; ?></p>
       <p>CPU: <?php echo $row['cpu']; ?></p>
       <p> Cores: <?php echo $row['cpucores']; ?></p>
-      <p>RAM: <?php echo mbytes_to_human($row['ram']); ?> MiB</p>
+      <p>RAM: <?php echo mbytes_to_human($row['ram']); ?></p>
       <p>Kernel: <?php echo $row['kernel']; ?></p>
       <p class="<?php echo $disk_class; ?>">Disktype: <?php echo $row['disk_type']; ?></p>
       <p class="<?php echo $disk_class; ?>"> Disk space: <?php echo bytes_to_human($row['disk_available']); ?></p>
@@ -68,7 +68,7 @@ while($row = $result->fetch_assoc()) {
         <span class="poup_note_text <?php echo $disk_class; ?>">ioPing Low: <?php echo $row['ioping_min']; ?></span><br />
         <span class="poup_note_text <?php echo $disk_class; ?>">ioPing High: <?php echo $row['ioping_max']; ?></span><br />
         <span class="poup_note_text <?php echo $disk_class; ?>">ioPing Avg: <?php echo $row['ioping_avg']; ?></span><br />
-        <span class="poup_note_text <?php echo $disk_class; ?>">DD (Write/Avg): <?php echo mbytes_to_human($row['dd_avg']); ?></span><br />
+        <span class="poup_note_text <?php echo $disk_class; ?>">DD (Write/Avg): <?php echo mbytes_to_human($row['dd_avg']); ?>/s</span><br />
       </div>
     </div>
     <?php
